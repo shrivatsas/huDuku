@@ -1,5 +1,5 @@
 ## Overview
-### huduku ()
+### huduku (ಹುಡುಕು)
 A toy project to learn golang as well as some text search techniques and optimizations.
 
 The roadmap is managed via Github Projects.
