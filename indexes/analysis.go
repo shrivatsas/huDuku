@@ -1,7 +1,7 @@
 package indexes
 
 import (
-	// snowballeng "github.com/kljensen/snowball/english"
+	snowballeng "github.com/kljensen/snowball/english"
 	"strings"
 	"unicode"
 )
@@ -11,7 +11,7 @@ func Analyze(text string) []string {
 	tokens := tokenize(text)
 	tokens = lowercaseFilter(tokens)
 	tokens = stopwordFilter(tokens)
-	// tokens = stemmerFilter(tokens)
+	tokens = stemmerFilter(tokens)
 	return tokens
 }
 
@@ -49,10 +49,10 @@ func stopwordFilter(tokens []string) []string {
 }
 
 // 3. Reduce words to base form
-// func stemmerFilter(tokens []string) []string {
-// 	r := make([]string, len(tokens))
-// 	for i, token := range tokens {
-// 		r[i] = snowballeng.Stem(token, false)
-// 	}
-// 	return r
-// }
+func stemmerFilter(tokens []string) []string {
+	r := make([]string, len(tokens))
+	for i, token := range tokens {
+		r[i] = snowballeng.Stem(token, false)
+	}
+	return r
+}
