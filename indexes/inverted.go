@@ -1,6 +1,7 @@
 package indexes
 
 import (
+	"fmt"
 	"github.com/shrivatsas/huduku/loaders"
 )
 
@@ -28,11 +29,11 @@ func CreateInverted(docs []loaders.Document) *Index {
 }
 
 // Inverted finds all doc ids which have the given string
-func Inverted(idx *Index, text string) []int {
-	var r []int
+func Inverted(idx *Index, text string) [][]int {
+	var r [][]int
 	for _, token := range Analyze(text) {
 		if ids, ok := (*idx)[token]; ok {
-			r = append(r, ids...)
+			r = append(r, ids)
 		}
 	}
 	return r

@@ -1,5 +1,5 @@
 ## Overview
-### huduku (ಹುಡುಕು)
+### huDuku (ಹುಡುಕು)
 A toy project to learn golang as well as some text search techniques and optimizations.
 
 Further ideas from Artem's blog
@@ -15,6 +15,12 @@ Others
 1. Language support (Indian languages)
 
 The roadmap is managed via Github Projects.
+
+## Running a search
+```
+go run main.go hello world
+```
+The above command tries to run a search for the words "hello world"
 
 ## References
 https://artem.krylysov.com/blog/2020/07/28/lets-build-a-full-text-search-engine/  

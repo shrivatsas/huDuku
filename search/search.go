@@ -40,9 +40,39 @@ func Idx(docs []loaders.Document, term string) []loaders.Document {
 		idx = *indexes.CreateInverted(docs)
 	}
 	var r []loaders.Document
-	docIds := indexes.Inverted(&idx, term)
-	for _, id := range docIds {
-		r = append(r, docs[id])
+	var inds []int
+	idsByToken := indexes.Inverted(&idx, term)
+	for _, ids := range idsByToken {
+		if inds == nil {
+			inds = ids
+		} else {
+			inds = intersection(inds, ids)
+		}
+
+		for _, id := range inds {
+			r = append(r, docs[id])
+		}
+	}
+	return r
+}
+
+func intersection(a []int, b []int) []int {
+	maxLen := len(a)
+	if maxLen < len(b) {
+		maxLen = len(b)
+	}
+	r := make([]int, 0, maxLen)
+	var i, j int
+	for i < len(a) && j < len(b) {
+		if a[i] < b[j] {
+			i++
+		} else if a[i] > b[j] {
+			j++
+		} else {
+			r = append(r, a[i])
+			i++
+			j++
+		}
 	}
 	return r
 }
