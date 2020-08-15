@@ -25,4 +25,4 @@ The above command tries to run a search for the words "hello world"
 ## References
 https://artem.krylysov.com/blog/2020/07/28/lets-build-a-full-text-search-engine/  
 https://github.com/akrylysov/simplefts  
-
+https://github.com/fzandona/goroar  
