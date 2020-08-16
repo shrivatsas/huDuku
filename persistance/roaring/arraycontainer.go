@@ -2,12 +2,12 @@ package roaring
 
 const (
 	arrayContainerInitSize = 4
-	// arrayContainerMaxSize  = 4096
+	arrayContainerMaxSize  = 4096
 )
 
 type arrayContainer struct {
 	cardinality int
-	values      []unit16
+	values      []uint16
 }
 
 func newArrayContainer() *arrayContainer {

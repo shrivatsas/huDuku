@@ -2,7 +2,7 @@ package roaring
 
 const (
 	bitmapContainerMaxCapacity = uint32(1 << 16)
-	// one                        = uint64(1)
+	one                        = uint64(1)
 )
 
 type bitmapContainer struct {
@@ -17,7 +17,7 @@ func newBitmapContainer() *bitmapContainer {
 func (bc *bitmapContainer) loadData(ac *arrayContainer) {
 	bc.cardinality = ac.cardinality
 	for i := 0; i < ac.cardinality; i++ {
-		bc.bitmap[uint32(ac.content[i])/64] |= one << (ac.content[i] % 64)
+		bc.bitmap[uint32(ac.values[i])/64] |= one << (ac.values[i] % 64)
 	}
 }
 
@@ -35,4 +35,22 @@ func (bc *bitmapContainer) toArrayContainer() *arrayContainer {
 	}
 
 	return &arrayContainer{bc.cardinality, values}
+}
+
+func (bc *bitmapContainer) add(i uint16) container {
+	x := uint32(i)
+	index := x / 64
+	mod := x % 64
+	previous := bc.bitmap[index]
+	bc.bitmap[index] |= one << mod
+	bc.cardinality += int((previous ^ bc.bitmap[index]) >> mod)
+	return bc
+}
+
+// http://en.wikipedia.org/wiki/Hamming_weight
+func countBits(i uint64) int {
+	i = i - ((i >> 1) & 0x5555555555555555)
+	i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333)
+	result := (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56
+	return int(result)
 }
