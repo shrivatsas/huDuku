@@ -1,5 +1,9 @@
 package roaring
 
+import (
+	"fmt"
+)
+
 const (
 	bitmapContainerMaxCapacity = uint32(1 << 16)
 	one                        = uint64(1)
@@ -24,6 +28,7 @@ func (bc *bitmapContainer) loadData(ac *arrayContainer) {
 func (bc *bitmapContainer) toArrayContainer() *arrayContainer {
 	values := make([]uint16, bc.cardinality)
 	pos := 0
+	fmt.Println(bc.cardinality, len(bc.bitmap))
 	for k := 0; k < len(bc.bitmap); k++ {
 		bitset := bc.bitmap[k]
 		for bitset != 0 {
@@ -45,6 +50,10 @@ func (bc *bitmapContainer) add(i uint16) container {
 	bc.bitmap[index] |= one << mod
 	bc.cardinality += int((previous ^ bc.bitmap[index]) >> mod)
 	return bc
+}
+
+func (bc *bitmapContainer) contains(x uint16) bool {
+	return bc.bitmap[uint32(x)/64]&(one<<(x%64)) != 0
 }
 
 // http://en.wikipedia.org/wiki/Hamming_weight

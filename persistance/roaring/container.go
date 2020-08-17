@@ -8,7 +8,7 @@ type container interface {
 	// xor(x container) container
 
 	// clone() container
-	// contains(x uint16) bool
+	contains(x uint16) bool
 
 	// getCardinality() int
 	// sizeInBytes() int
