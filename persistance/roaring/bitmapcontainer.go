@@ -52,6 +52,49 @@ func (bc *bitmapContainer) add(i uint16) container {
 	return bc
 }
 
+func (bc *bitmapContainer) and(other container) container {
+	switch oc := other.(type) {
+	case *arrayContainer:
+		return bc.andArray(oc)
+	case *bitmapContainer:
+		return bc.andBitmap(oc)
+	}
+	return nil
+}
+
+func (bc *bitmapContainer) andArray(value2 *arrayContainer) *arrayContainer {
+	answer := make([]uint16, value2.cardinality)
+
+	cardinality := 0
+	for k := 0; k < value2.cardinality; k++ {
+		if bc.contains(value2.values[k]) {
+			answer[cardinality] = value2.values[k]
+			cardinality++
+		}
+	}
+
+	return &arrayContainer{cardinality, answer[:cardinality]}
+}
+
+func (bc *bitmapContainer) andBitmap(value2 *bitmapContainer) container {
+	newCardinality := 0
+	for k, v := range bc.bitmap {
+		newCardinality += countBits(v & value2.bitmap[k])
+	}
+
+	if newCardinality > arrayContainerMaxSize {
+		answer := newBitmapContainer()
+		for k, v := range bc.bitmap {
+			answer.bitmap[k] = v & value2.bitmap[k]
+		}
+		answer.cardinality = newCardinality
+		return answer
+
+	}
+	content := fillArrayAND(bc.bitmap, value2.bitmap, newCardinality)
+	return &arrayContainer{newCardinality, content}
+}
+
 func (bc *bitmapContainer) contains(x uint16) bool {
 	return bc.bitmap[uint32(x)/64]&(one<<(x%64)) != 0
 }
@@ -62,4 +105,25 @@ func countBits(i uint64) int {
 	i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333)
 	result := (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56
 	return int(result)
+}
+
+func fillArrayAND(bitmap1, bitmap2 []uint64, newCardinality int) []uint16 {
+	pos := 0
+
+	if len(bitmap1) != len(bitmap2) {
+		panic("Bitmaps have different length - not supported.")
+	}
+
+	container := make([]uint16, newCardinality)
+	for k := 0; k < len(bitmap1); k++ {
+		bitset := bitmap1[k] & bitmap2[k]
+		for bitset != 0 {
+			t := bitset & -bitset
+			container[pos] = uint16((k*64 + countBits(t-1)))
+			pos++
+			bitset ^= t
+		}
+	}
+
+	return container
 }
