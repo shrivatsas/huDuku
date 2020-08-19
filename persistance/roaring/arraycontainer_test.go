@@ -68,3 +68,46 @@ func TestArrayContainerAdd(t *testing.T) {
 		t.Errorf("Cardinality: %d, want %d", ac.cardinality, 3)
 	}
 }
+
+func TestArrayContains(t *testing.T) {
+	ac := newArrayContainerRunOfOnes(0, 9)
+
+	for i := 10; i < 20; i++ {
+		if ac.contains(uint16(i)) {
+			t.Errorf("Array constains %d, want: false)", i)
+		}
+	}
+
+	for i := 0; i < 9; i++ {
+		if !ac.contains(uint16(i)) {
+			t.Errorf("Array not constains %d, want: true)", i)
+		}
+	}
+
+	ac = newArrayContainerRunOfOnes(1, 5)
+
+	if ac.contains(uint16(0)) {
+		t.Errorf("Array constains zero.")
+	}
+}
+
+func TestOrArray(t *testing.T) {
+	ac1 := newArrayContainer()
+	ac2 := newArrayContainer()
+	count := 100
+
+	for i := 0; i < count; i += 2 {
+		ac1.add(uint16(i))
+		ac2.add(uint16(i + 1))
+	}
+
+	result := ac1.orArray(ac2)
+	if result.getCardinality() != count {
+		t.Errorf("Cardinality: %d, want: %d", result.getCardinality(), count)
+	}
+	for k, v := range result.(*arrayContainer).values {
+		if v != uint16(k) {
+			t.Errorf("orArray: %d, want: %d", v, k)
+		}
+	}
+}

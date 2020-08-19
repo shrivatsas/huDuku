@@ -64,6 +64,28 @@ func (ac *arrayContainer) add(x uint16) container {
 	return ac
 }
 
+func (ac *arrayContainer) orArray(other *arrayContainer) container {
+	totalCardinality := ac.cardinality + other.cardinality
+	if totalCardinality > arrayContainerMaxSize {
+		bc := newBitmapContainer()
+		for i := 0; i < other.cardinality; i++ {
+			bc.add(other.values[i])
+		}
+		for i := 0; i < ac.cardinality; i++ {
+			bc.add(ac.values[i])
+		}
+		if bc.cardinality <= arrayContainerMaxSize {
+			return bc.toArrayContainer()
+		}
+		return bc
+	}
+	answer := arrayContainer{}
+	pos, content := union2by2(ac.values, ac.cardinality, other.values, other.cardinality, totalCardinality)
+	answer.cardinality = pos
+	answer.values = content
+	return &answer
+}
+
 func (ac *arrayContainer) increaseCapacity() {
 	length := len(ac.values)
 	var newLength int
@@ -81,6 +103,10 @@ func (ac *arrayContainer) increaseCapacity() {
 	newSlice := make([]uint16, newLength)
 	copy(newSlice, ac.values)
 	ac.values = newSlice
+}
+
+func (ac *arrayContainer) getCardinality() int {
+	return ac.cardinality
 }
 
 func (ac *arrayContainer) toBitmapContainer() *bitmapContainer {
@@ -107,4 +133,71 @@ func binarySearch(array []uint16, length int, k uint16) int {
 		}
 	}
 	return -(low + 1)
+}
+
+// Unite two sorted lists
+func union2by2(set1 []uint16, length1 int,
+	set2 []uint16, length2, bufferSize int) (int, []uint16) {
+
+	if 0 == length2 {
+		buffer := make([]uint16, length1)
+		copy(buffer, set1)
+		return length1, buffer
+	}
+
+	if 0 == length1 {
+		buffer := make([]uint16, length2)
+		copy(buffer, set2)
+		return length2, buffer
+	}
+
+	buffer := make([]uint16, bufferSize)
+
+	k1, k2, pos := 0, 0, 0
+
+	for {
+		if set1[k1] < set2[k2] {
+			buffer[pos] = set1[k1]
+			pos = pos + 1
+			k1 = k1 + 1
+			if k1 >= length1 {
+				for ; k2 < length2; k2++ {
+					buffer[pos] = set2[k2]
+					pos = pos + 1
+				}
+				break
+			}
+		} else if set1[k1] == set2[k2] {
+			buffer[pos] = set1[k1]
+			pos = pos + 1
+			k1 = k1 + 1
+			k2 = k2 + 1
+			if k1 >= length1 {
+				for ; k2 < length2; k2++ {
+					buffer[pos] = set2[k2]
+					pos = pos + 1
+				}
+				break
+			}
+			if k2 >= length2 {
+				for ; k1 < length1; k1++ {
+					buffer[pos] = set1[k1]
+					pos = pos + 1
+				}
+				break
+			}
+		} else {
+			buffer[pos] = set2[k2]
+			pos = pos + 1
+			k2 = k2 + 1
+			if k2 >= length2 {
+				for ; k1 < length1; k1++ {
+					buffer[pos] = set1[k1]
+					pos = pos + 1
+				}
+				break
+			}
+		}
+	}
+	return pos, buffer[:pos]
 }

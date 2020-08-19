@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestContains(t *testing.T) {
+func TestBitmapContains(t *testing.T) {
 	bc := newBitmapContainer()
 
 	for i := 0; i < 10; i++ {

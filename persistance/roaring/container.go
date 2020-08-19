@@ -10,6 +10,6 @@ type container interface {
 	// clone() container
 	contains(x uint16) bool
 
-	// getCardinality() int
+	getCardinality() int
 	// sizeInBytes() int
 }

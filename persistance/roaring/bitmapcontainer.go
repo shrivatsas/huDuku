@@ -99,6 +99,10 @@ func (bc *bitmapContainer) contains(x uint16) bool {
 	return bc.bitmap[uint32(x)/64]&(one<<(x%64)) != 0
 }
 
+func (bc *bitmapContainer) getCardinality() int {
+	return bc.cardinality
+}
+
 // http://en.wikipedia.org/wiki/Hamming_weight
 func countBits(i uint64) int {
 	i = i - ((i >> 1) & 0x5555555555555555)
