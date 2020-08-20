@@ -111,3 +111,46 @@ func TestOrArray(t *testing.T) {
 		}
 	}
 }
+
+func TestOrArray_2(t *testing.T) {
+	ac1 := newArrayContainer()
+	ac2 := newArrayContainer()
+	count := 100
+
+	for i := 0; i < count; i++ {
+		ac1.add(uint16(i))
+	}
+
+	result := ac1.orArray(ac2)
+	if result.getCardinality() != count {
+		t.Errorf("Cardinality: %d, want: %d", result.getCardinality(), count)
+	}
+	for i := 0; i < count; i++ {
+		if result.(*arrayContainer).values[i] != uint16(i) {
+			t.Errorf("orArray: %d, want: %d", result.(*arrayContainer).values[i], i)
+		}
+	}
+}
+
+func TestAndNot(t *testing.T) {
+	ac1 := newArrayContainerWithCapacity(10)
+	ac2 := newArrayContainerWithCapacity(10)
+
+	for i := 0; i < 10; i++ {
+		ac1.add(uint16(i))
+	}
+
+	for i := 0; i < 10; i++ {
+		ac2.add(uint16(i + 5))
+	}
+
+	answer := ac1.andNotArray(ac2)
+	if answer.cardinality != 5 {
+		t.Errorf("Cardinality: %d, want: %d", answer.cardinality, 10)
+	}
+	for i, v := range answer.values {
+		if uint16(i) != v {
+			t.Errorf("Got: %d, want: %d", v, i)
+		}
+	}
+}

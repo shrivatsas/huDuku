@@ -86,6 +86,13 @@ func (ac *arrayContainer) orArray(other *arrayContainer) container {
 	return &answer
 }
 
+func (ac *arrayContainer) andNotArray(value2 *arrayContainer) *arrayContainer {
+	cardinality, content := difference(ac.values, ac.cardinality,
+		value2.values, value2.cardinality)
+
+	return &arrayContainer{cardinality, content}
+}
+
 func (ac *arrayContainer) increaseCapacity() {
 	length := len(ac.values)
 	var newLength int
@@ -194,6 +201,59 @@ func union2by2(set1 []uint16, length1 int,
 				for ; k1 < length1; k1++ {
 					buffer[pos] = set1[k1]
 					pos = pos + 1
+				}
+				break
+			}
+		}
+	}
+	return pos, buffer[:pos]
+}
+
+func difference(
+	set1 []uint16, length1 int,
+	set2 []uint16, length2 int) (int, []uint16) {
+
+	k1, k2, pos := 0, 0, 0
+
+	if 0 == length2 {
+		buffer := make([]uint16, length1)
+		copy(buffer, set1)
+		return length1, buffer
+	}
+
+	if 0 == length1 {
+		return 0, make([]uint16, 0)
+	}
+
+	buffer := make([]uint16, length1)
+
+	for {
+		if set1[k1] < set2[k2] {
+			buffer[pos] = set1[k1]
+			pos++
+			k1++
+			if k1 >= length1 {
+				break
+			}
+		} else if set1[k1] == set2[k2] {
+			k1++
+			k2++
+			if k1 >= length1 {
+				break
+			}
+			if k2 >= length2 {
+				for ; k1 < length1; k1++ {
+					buffer[pos] = set1[k1]
+					pos++
+				}
+				break
+			}
+		} else { // if (val1>val2)
+			k2++
+			if k2 >= length2 {
+				for ; k1 < length1; k1++ {
+					buffer[pos] = set1[k1]
+					pos++
 				}
 				break
 			}
