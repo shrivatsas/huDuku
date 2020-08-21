@@ -35,7 +35,7 @@ func (ac *arrayContainer) contains(x uint16) bool {
 
 func (ac *arrayContainer) add(x uint16) container {
 	if ac.cardinality >= arrayContainerMaxSize {
-		bc := ac.toBitmapContainer()
+		bc := arrayToBitmap(ac)
 		bc.add(x)
 		return bc
 	}
@@ -64,6 +64,30 @@ func (ac *arrayContainer) add(x uint16) container {
 	return ac
 }
 
+func (ac *arrayContainer) and(c1 container) container {
+	switch oc := c1.(type) {
+	case *arrayContainer:
+		cardinality, content := intersect2by2(ac.values,
+			ac.cardinality, oc.values,
+			oc.getCardinality())
+		return &arrayContainer{cardinality, content}
+	case *bitmapContainer:
+		return and(oc, ac)
+	}
+
+	return nil
+}
+
+func (ac *arrayContainer) or(c1 container) container {
+	switch oc := c1.(type) {
+	case *arrayContainer:
+	case *bitmapContainer:
+		return or(oc, ac)
+	}
+
+	return nil
+}
+
 func (ac *arrayContainer) orArray(other *arrayContainer) container {
 	totalCardinality := ac.cardinality + other.cardinality
 	if totalCardinality > arrayContainerMaxSize {
@@ -75,7 +99,7 @@ func (ac *arrayContainer) orArray(other *arrayContainer) container {
 			bc.add(ac.values[i])
 		}
 		if bc.cardinality <= arrayContainerMaxSize {
-			return bc.toArrayContainer()
+			return bitmapToArray(bc)
 		}
 		return bc
 	}
@@ -114,12 +138,6 @@ func (ac *arrayContainer) increaseCapacity() {
 
 func (ac *arrayContainer) getCardinality() int {
 	return ac.cardinality
-}
-
-func (ac *arrayContainer) toBitmapContainer() *bitmapContainer {
-	bc := newBitmapContainer()
-	bc.loadData(ac)
-	return bc
 }
 
 func binarySearch(array []uint16, length int, k uint16) int {
@@ -260,4 +278,165 @@ func difference(
 		}
 	}
 	return pos, buffer[:pos]
+}
+
+func intersect2by2(set1 []uint16, length1 int,
+	set2 []uint16, length2 int) (int, []uint16) {
+
+	if length1*64 < length2 {
+		return oneSidedGallopingIntersect2by2(set1, length1, set2, length2)
+	}
+
+	if length2*64 < length1 {
+		return oneSidedGallopingIntersect2by2(set2, length2, set1, length1)
+	}
+
+	return localIntersect2by2(set1, length1, set2, length2)
+}
+
+func min(x, y int) int {
+	if x <= y {
+		return x
+	}
+	return y
+}
+
+func localIntersect2by2(set1 []uint16, length1 int,
+	set2 []uint16, length2 int) (int, []uint16) {
+
+	if 0 == length1 || 0 == length2 {
+		return 0, make([]uint16, 0)
+	}
+
+	finalLength := min(length1, length2)
+	buffer := make([]uint16, finalLength)
+	k1, k2, pos := 0, 0, 0
+
+Mainwhile:
+	for {
+		if set2[k2] < set1[k1] {
+			for {
+				k2++
+				if k2 == length2 {
+					break Mainwhile
+				}
+				if set2[k2] >= set1[k1] {
+					break
+				}
+			}
+		}
+		if set1[k1] < set2[k2] {
+			for {
+				k1++
+				if k1 == length1 {
+					break Mainwhile
+				}
+				if set1[k1] >= set2[k2] {
+					break
+				}
+			}
+		} else {
+			buffer[pos] = set1[k1]
+			pos++
+			k1++
+			if k1 == length1 {
+				break
+			}
+			k2++
+			if k2 == length2 {
+				break
+			}
+		}
+	}
+	return pos, buffer[:pos]
+}
+
+func oneSidedGallopingIntersect2by2(
+	smallSet []uint16, smallLength int,
+	largeSet []uint16, largeLength int) (int, []uint16) {
+
+	if 0 == smallLength {
+		return 0, make([]uint16, 0)
+	}
+
+	buffer := make([]uint16, smallLength)
+	k1, k2, pos := 0, 0, 0
+
+	for {
+		if largeSet[k1] < smallSet[k2] {
+			k1 = advanceUntil(largeSet, k1, largeLength, smallSet[k2])
+			if k1 == largeLength {
+				break
+			}
+		}
+		if smallSet[k2] < largeSet[k1] {
+			k2++
+			if k2 == smallLength {
+				break
+			}
+		} else { // (set2[k2] == set1[k1])
+			buffer[pos] = smallSet[k2]
+			pos++
+			k2++
+			if k2 == smallLength {
+				break
+			}
+			k1 = advanceUntil(largeSet, k1, largeLength, smallSet[k2])
+			if k1 == largeLength {
+				break
+			}
+		}
+
+	}
+	return pos, buffer[:pos]
+}
+
+// Find the smallest integer larger than pos such that array[pos]>= min.
+// If none can be found, return length. Based on code by O. Kaser.
+func advanceUntil(array []uint16, pos, length int, min uint16) int {
+	lower := pos + 1
+
+	// special handling for a possibly common sequential case
+	if lower >= length || array[lower] >= min {
+		return lower
+	}
+
+	spansize := 1 // could set larger  bootstrap an upper limit
+
+	for (lower+spansize) < length && array[lower+spansize] < min {
+		spansize *= 2
+	}
+	var upper int
+	if lower+spansize < length {
+		upper = lower + spansize
+	} else {
+		upper = length - 1
+	}
+
+	// maybe we are lucky (could be common case when the seek ahead
+	// expected to be small and sequential will otherwise make us look bad)
+	if array[upper] == min {
+		return upper
+	}
+
+	if array[upper] < min { // means array has no item >= min
+		return length
+	}
+
+	// we know that the next-smallest span was too small
+	lower += (spansize / 2)
+
+	// else begin binary search
+	// invariant: array[lower]<min && array[upper]>min
+	for lower+1 != upper {
+		mid := (lower + upper) / 2
+		if array[mid] == min {
+			return mid
+		} else if array[mid] < min {
+			lower = mid
+		} else {
+			upper = mid
+		}
+	}
+	return upper
 }

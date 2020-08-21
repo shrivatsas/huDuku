@@ -1,9 +1,5 @@
 package roaring
 
-import (
-	"fmt"
-)
-
 const (
 	bitmapContainerMaxCapacity = uint32(1 << 16)
 	one                        = uint64(1)
@@ -18,30 +14,6 @@ func newBitmapContainer() *bitmapContainer {
 	return &bitmapContainer{0, make([]uint64, bitmapContainerMaxCapacity/64)}
 }
 
-func (bc *bitmapContainer) loadData(ac *arrayContainer) {
-	bc.cardinality = ac.cardinality
-	for i := 0; i < ac.cardinality; i++ {
-		bc.bitmap[uint32(ac.values[i])/64] |= one << (ac.values[i] % 64)
-	}
-}
-
-func (bc *bitmapContainer) toArrayContainer() *arrayContainer {
-	values := make([]uint16, bc.cardinality)
-	pos := 0
-	fmt.Println(bc.cardinality, len(bc.bitmap))
-	for k := 0; k < len(bc.bitmap); k++ {
-		bitset := bc.bitmap[k]
-		for bitset != 0 {
-			t := bitset & -bitset
-			values[pos] = uint16((k*64 + countBits(t-1)))
-			pos++
-			bitset ^= t
-		}
-	}
-
-	return &arrayContainer{bc.cardinality, values}
-}
-
 func (bc *bitmapContainer) add(i uint16) container {
 	x := uint32(i)
 	index := x / 64
@@ -52,47 +24,38 @@ func (bc *bitmapContainer) add(i uint16) container {
 	return bc
 }
 
-func (bc *bitmapContainer) and(other container) container {
-	switch oc := other.(type) {
-	case *arrayContainer:
-		return bc.andArray(oc)
+func (bc *bitmapContainer) and(c1 container) container {
+	switch oc := c1.(type) {
 	case *bitmapContainer:
-		return bc.andBitmap(oc)
+		newCardinality := 0
+		for k, v := range bc.bitmap {
+			newCardinality += countBits(v & oc.bitmap[k])
+		}
+
+		if newCardinality > arrayContainerMaxSize {
+			answer := newBitmapContainer()
+			for k, v := range bc.bitmap {
+				answer.bitmap[k] = v & oc.bitmap[k]
+			}
+			answer.cardinality = newCardinality
+			return answer
+		}
+		content := fillArrayAND(bc.bitmap, oc.bitmap, newCardinality)
+		return &arrayContainer{newCardinality, content}
+	case *arrayContainer:
+		return and(bc, oc)
 	}
+
 	return nil
 }
 
-func (bc *bitmapContainer) andArray(value2 *arrayContainer) *arrayContainer {
-	answer := make([]uint16, value2.cardinality)
+func (bc *bitmapContainer) or(c1 container) container {
+	switch oc := c1.(type) {
+	case *bitmapContainer:
 
-	cardinality := 0
-	for k := 0; k < value2.cardinality; k++ {
-		if bc.contains(value2.values[k]) {
-			answer[cardinality] = value2.values[k]
-			cardinality++
-		}
+	case *arrayContainer:
+		return or(bc, oc)
 	}
-
-	return &arrayContainer{cardinality, answer[:cardinality]}
-}
-
-func (bc *bitmapContainer) andBitmap(value2 *bitmapContainer) container {
-	newCardinality := 0
-	for k, v := range bc.bitmap {
-		newCardinality += countBits(v & value2.bitmap[k])
-	}
-
-	if newCardinality > arrayContainerMaxSize {
-		answer := newBitmapContainer()
-		for k, v := range bc.bitmap {
-			answer.bitmap[k] = v & value2.bitmap[k]
-		}
-		answer.cardinality = newCardinality
-		return answer
-
-	}
-	content := fillArrayAND(bc.bitmap, value2.bitmap, newCardinality)
-	return &arrayContainer{newCardinality, content}
 }
 
 func (bc *bitmapContainer) contains(x uint16) bool {
