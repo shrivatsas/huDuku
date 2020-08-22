@@ -52,10 +52,19 @@ func (bc *bitmapContainer) and(c1 container) container {
 func (bc *bitmapContainer) or(c1 container) container {
 	switch oc := c1.(type) {
 	case *bitmapContainer:
-
+		answer := newBitmapContainer()
+		for i := 0; i < len(bc.bitmap); i++ {
+			answer.bitmap[i] = bc.bitmap[i] | oc.bitmap[i]
+			answer.cardinality = answer.cardinality + countBits(answer.bitmap[i])
+		}
+		if answer.getCardinality() < arrayContainerMaxSize {
+			return bitmapToArray(answer)
+		}
+		return answer
 	case *arrayContainer:
 		return or(bc, oc)
 	}
+	return nil
 }
 
 func (bc *bitmapContainer) contains(x uint16) bool {
@@ -66,7 +75,7 @@ func (bc *bitmapContainer) getCardinality() int {
 	return bc.cardinality
 }
 
-// http://en.wikipedia.org/wiki/Hamming_weight
+// http://en.wikipedia.org/wiki/Hamming_weight :: popcount64c
 func countBits(i uint64) int {
 	i = i - ((i >> 1) & 0x5555555555555555)
 	i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333)

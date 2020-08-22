@@ -45,3 +45,55 @@ func TestAndBitmapArray(t *testing.T) {
 		}
 	}
 }
+
+func TestAndBitmap(t *testing.T) {
+	bt1 := newBitmapContainer()
+	bt2 := newBitmapContainer()
+
+	for i := 0; i < 4000; i++ {
+		bt1.add(uint16(i))
+		bt2.add(uint16(i))
+	}
+
+	answer := bt1.and(bt2)
+	switch ac := answer.(type) {
+	case *arrayContainer:
+		if ac.cardinality != 4000 {
+			t.Errorf("Cardinality: %d, want: 4000", ac.cardinality)
+		}
+		for i := 0; i < 4000; i++ {
+			if ac.values[i] != uint16(i) {
+				t.Errorf("AndBitmap: %d, want: %d", ac.values[i], i)
+				break
+			}
+		}
+	default:
+		t.Errorf("Wrong container type: %T", ac)
+	}
+}
+
+func TestOrBitmap(t *testing.T) {
+	bt1 := newBitmapContainer()
+	bt2 := newBitmapContainer()
+
+	for i := 0; i < 4000; i++ {
+		bt1.add(uint16(i))
+		bt2.add(uint16(i))
+	}
+
+	answer := bt1.or(bt2)
+	switch ac := answer.(type) {
+	case *arrayContainer:
+		if ac.cardinality != 4000 {
+			t.Errorf("Cardinality: %d, want: 4000", ac.cardinality)
+		}
+		for i := 0; i < 4000; i++ {
+			if ac.values[i] != uint16(i) {
+				t.Errorf("AndBitmap: %d, want: %d", ac.values[i], i)
+				break
+			}
+		}
+	default:
+		t.Errorf("Wrong container type: %T", ac)
+	}
+}

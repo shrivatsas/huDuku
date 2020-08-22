@@ -39,3 +39,20 @@ func TestToArrayContainer(t *testing.T) {
 		}
 	}
 }
+
+func TestBitmapOrArray(t *testing.T) {
+	bc := newBitmapContainer()
+	for i := 0; i < 4096; i++ {
+		bc.add(uint16(i))
+	}
+
+	ac := newArrayContainerWithCapacity(4096)
+	for i := 0; i < 8192; i += 2 {
+		ac.add(uint16(i))
+	}
+
+	answer := or(bc, ac)
+	if answer.getCardinality() != 6144 {
+		t.Errorf("Or count mismatch : %d\n", answer.getCardinality())
+	}
+}

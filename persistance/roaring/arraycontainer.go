@@ -81,33 +81,30 @@ func (ac *arrayContainer) and(c1 container) container {
 func (ac *arrayContainer) or(c1 container) container {
 	switch oc := c1.(type) {
 	case *arrayContainer:
+		totalCardinality := ac.cardinality + oc.cardinality
+		if totalCardinality > arrayContainerMaxSize {
+			bc := newBitmapContainer()
+			for i := 0; i < oc.cardinality; i++ {
+				bc.add(oc.values[i])
+			}
+			for i := 0; i < ac.cardinality; i++ {
+				bc.add(ac.values[i])
+			}
+			if bc.cardinality <= arrayContainerMaxSize {
+				return bitmapToArray(bc)
+			}
+			return bc
+		}
+		answer := arrayContainer{}
+		pos, content := union2by2(ac.values, ac.cardinality, oc.values, oc.cardinality, totalCardinality)
+		answer.cardinality = pos
+		answer.values = content
+		return &answer
 	case *bitmapContainer:
 		return or(oc, ac)
 	}
 
 	return nil
-}
-
-func (ac *arrayContainer) orArray(other *arrayContainer) container {
-	totalCardinality := ac.cardinality + other.cardinality
-	if totalCardinality > arrayContainerMaxSize {
-		bc := newBitmapContainer()
-		for i := 0; i < other.cardinality; i++ {
-			bc.add(other.values[i])
-		}
-		for i := 0; i < ac.cardinality; i++ {
-			bc.add(ac.values[i])
-		}
-		if bc.cardinality <= arrayContainerMaxSize {
-			return bitmapToArray(bc)
-		}
-		return bc
-	}
-	answer := arrayContainer{}
-	pos, content := union2by2(ac.values, ac.cardinality, other.values, other.cardinality, totalCardinality)
-	answer.cardinality = pos
-	answer.values = content
-	return &answer
 }
 
 func (ac *arrayContainer) andNotArray(value2 *arrayContainer) *arrayContainer {
